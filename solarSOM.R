@@ -106,7 +106,11 @@ fviz_nbclust(mydata, kmeans, method = "wss") +
 
 
 # ----- till here --- #
-
+# train the LSTM on each cluster or on train with cluster info
+# predict using som
+# add cluster info to test set after prediction
+# predict using lstm for cluster
+# analyze the results (rmse, mape)
 
 # use hierarchical clustering to cluster the code block vectors
 som_cluster <- cutree(hclust(dist(som_model$codes[[1]])), 4)
