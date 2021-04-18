@@ -70,6 +70,7 @@ nrow(norm_df.train)
 nrow(norm_df.test)
 
 # ------ perform SOM clustering on train dataset excluding dependent variable ---- #
+set.seed(3100)
 data_train_matrix <- as.matrix(norm_df.train[,c(2:12)])
 som_grid <- somgrid(xdim = 5, ydim=5, topo="hexagonal")
 som_model <- som(data_train_matrix, 
