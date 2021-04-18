@@ -18,6 +18,8 @@ library("ggplot2")
 # ------read in the dataset--------- #
 solar_df = read.csv("SolarPrediction.csv")
 head(solar_df)
+# sort in ascending order of date
+solar_df = solar_df[order(as.Date(solar_df$Data, format = "%m/%d/%Y")),]
 drop <- c("UNIXTime")
 solar_df = solar_df[,!(names(solar_df) %in% drop)]
 sum(is.na(solar_df))
@@ -66,7 +68,7 @@ corrplot(correlations, method="circle")
 # ----- split into train / test -------- #
 norm_df.nrows <- nrow(norm_df)
 norm_df.sample <- 0.7
-norm_df.train.index <- sample(norm_df.nrows, norm_df.sample*norm_df.nrows)
+norm_df.train.index <- c(1:as.integer(norm_df.sample*norm_df.nrows))
 norm_df.train <- norm_df[norm_df.train.index,]
 norm_df.test <- norm_df[-norm_df.train.index,]
 truth = norm_df[-norm_df.train.index,]
@@ -113,7 +115,7 @@ fviz_nbclust(mydata, kmeans, method = "wss") +
 # analyze the results (rmse, mape)
 
 # use hierarchical clustering to cluster the code block vectors
-som_cluster <- cutree(hclust(dist(som_model$codes[[1]])), 4)
+som_cluster <- cutree(hclust(dist(som_model$codes[[1]])), 3)
 plot(som_model, type="mapping", bgcol = som_cluster, main = "Clusters") 
 add.cluster.boundaries(som_model, som_cluster) 
 som_clusterKey <- data.frame(som_cluster)
