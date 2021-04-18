@@ -97,7 +97,7 @@ fviz_nbclust(mydata, kmeans, method = "wss") +
   labs(subtitle = "Elbow method")
 
 # use hierarchical clustering to cluster the code book vectors
-pretty_palette <- c("#1f77b4", '#ff7f0e', '#2ca02c')
+pretty_palette <- c("#1f77b4", '#ff7f0e', '#2ca02c', '#655f60')
 som_cluster <- cutree(hclust(dist(som_model$codes[[1]])), 3)
 plot(som_model, type="mapping", bgcol = pretty_palette[som_cluster], main = "Clusters") 
 add.cluster.boundaries(som_model, som_cluster) 
@@ -138,22 +138,23 @@ cluster_one_test = subset(norm_df.test, som_cluster==1)
 cluster_two_test = subset(norm_df.test, som_cluster==2)
 cluster_three_test = subset(norm_df.test, som_cluster==3)
 
+
 cluster_one_truth = subset(truth, som_cluster==1)
 cluster_two_truth = subset(truth, som_cluster==2)
 cluster_three_truth = subset(truth, som_cluster==3)
 
-cluster_one_preds = predict(fits[1], cluster_one_test)
-cluster_two_preds = predict(fits[2], cluster_two_test)
-cluster_three_preds = predict(fits[3], cluster_three_test)
+
+cluster_one_preds = predict(fits[1], cluster_one_test[,c(1:11)])
+cluster_two_preds = predict(fits[2], cluster_two_test[,c(1:11)])
+cluster_three_preds = predict(fits[3], cluster_three_test[,c(1:11)])
+
 
 cluster_one_test$predicted = cluster_one_preds[[1]]
 cluster_two_test$predicted = cluster_two_preds[[1]]
 cluster_three_test$predicted = cluster_three_preds[[1]]
 
+
 RMSE(cluster_one_test$predicted, cluster_one_truth$Radiation)
 RMSE(cluster_two_test$predicted, cluster_two_truth$Radiation)
 RMSE(cluster_three_test$predicted, cluster_three_truth$Radiation)
-
-
-
 
