@@ -1,10 +1,3 @@
-# sources to use are:
-# 1. https://predictivehacks.com/how-to-build-stacked-ensemble-models-in-r/
-# 2. https://www.polarmicrobes.org/tutorial-self-organizing-maps-in-r/
-# 3. https://www.kaggle.com/sohelranaccselab/solar-radiation-prediction-using-ai
-# 4. https://www.r-bloggers.com/2014/02/self-organising-maps-for-customer-segmentation-using-r/
-# 5. https://iamciera.github.io/SOMexample/html/SOM_RNAseq_tutorial_part2a_SOM.html
-
 library("dplyr")
 library("psych")
 library("kohonen")
@@ -71,13 +64,13 @@ norm_df.sample <- 0.7
 norm_df.train.index <- c(1:as.integer(norm_df.sample*norm_df.nrows))
 norm_df.train <- norm_df[norm_df.train.index,]
 norm_df.test <- norm_df[-norm_df.train.index,]
-truth = norm_df[-norm_df.train.index,]
 norm_df.test <-norm_df.test[,-grep("Radiation",colnames(norm_df.test))]
+truth = norm_df[-norm_df.train.index,]
 nrow(norm_df.train)
 nrow(norm_df.test)
 
-# ------ perform SOM clustering on whole dataset ---- #
-data_train_matrix <- as.matrix(norm_df.train)
+# ------ perform SOM clustering on train dataset excluding dependent variable ---- #
+data_train_matrix <- as.matrix(norm_df.train[,c(2:12)])
 som_grid <- somgrid(xdim = 5, ydim=5, topo="hexagonal")
 som_model <- som(data_train_matrix, 
                  grid=som_grid, 
@@ -94,9 +87,6 @@ plot(som_model, type="count")
 plot(som_model, type="dist.neighbours")
 # individual fan representations of the magnitude of each variable in the weight vector is shown for each node
 plot(som_model, type="codes")
-var <- 1 #define the variable to plot 
-var_unscaled <- aggregate(as.numeric(norm_df[,var]), by=list(som_model$unit.classif), FUN=mean, simplify=TRUE)[,1] 
-plot(som_model, type = "property", property=var_unscaled, main=names(norm_df)[var])
 
 # determine the optimal no of clusters
 mydata <- som_model$codes 
@@ -106,17 +96,10 @@ library("factoextra")
 fviz_nbclust(mydata, kmeans, method = "wss") +
   labs(subtitle = "Elbow method")
 
-
-# ----- till here --- #
-# train the LSTM on each cluster or on train with cluster info
-# predict using som
-# add cluster info to test set after prediction
-# predict using lstm for cluster
-# analyze the results (rmse, mape)
-
-# use hierarchical clustering to cluster the code block vectors
+# use hierarchical clustering to cluster the code book vectors
+pretty_palette <- c("#1f77b4", '#ff7f0e', '#2ca02c')
 som_cluster <- cutree(hclust(dist(som_model$codes[[1]])), 3)
-plot(som_model, type="mapping", bgcol = som_cluster, main = "Clusters") 
+plot(som_model, type="mapping", bgcol = pretty_palette[som_cluster], main = "Clusters") 
 add.cluster.boundaries(som_model, som_cluster) 
 som_clusterKey <- data.frame(som_cluster)
 som_clusterKey$unit.classif <- c(1:25)
@@ -125,7 +108,38 @@ names(norm_df.train)[13] <- "unit.classif"
 norm_df.train <- merge(norm_df.train, som_clusterKey, by.x = "unit.classif")
 drop <- c("som_model$distances", "unit.classif")
 norm_df.train = norm_df.train[,!(names(norm_df.train) %in% drop)]
-# out <- split(norm_df, f = norm_df$som_cluster)
+
+# ----- train SVR model on each cluster --- #
+library("e1071")
+fits<-list(
+  svm(Radiation ~ Temperature + Pressure + Humidity + WindDirection.Degrees. + Speed + Month + Day + Hour + Minute + Second + SunDuration,  
+      data = norm_df.train, subset = som_cluster==1, scale=FALSE),
+  svm(Radiation ~ Temperature + Pressure + Humidity + WindDirection.Degrees. + Speed + Month + Day + Hour + Minute + Second + SunDuration,  
+      data = norm_df.train, subset = som_cluster==2, scale=FALSE),
+  svm(Radiation ~ Temperature + Pressure + Humidity + WindDirection.Degrees. + Speed + Month + Day + Hour + Minute + Second + SunDuration,  
+      data = norm_df.train, subset = som_cluster==3, scale=FALSE)
+)
+
+# ---- predict SOM clusters for test data ---- #
+som.prediction <- predict(som_model, newdata = as.matrix(norm_df.test))
+preds <- som.prediction$unit.classif
+norm_df.test <- cbind(norm_df.test, preds)
+names(norm_df.test)[12] <- "unit.classif"
+norm_df.test <- merge(norm_df.test, som_clusterKey, by.x = "unit.classif")
+drop <- c("unit.classif")
+norm_df.test = norm_df.test[,!(names(norm_df.test) %in% drop)]
+head(norm_df.test)
+
+# --- predict radiation using SVR for test data ------ #
+
+
+
+
+
+
+
+
+
 
 
 # ----- build a stacked ensemble model ------ #
