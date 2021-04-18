@@ -7,7 +7,7 @@ library("caret")
 library("caretEnsemble")
 library("ggplot2")
 library("stats")
-library("ggplot2") 
+library("gmodels")
 # ------read in the dataset--------- #
 solar_df = read.csv("SolarPrediction.csv")
 head(solar_df)
@@ -129,33 +129,31 @@ norm_df.test <- merge(norm_df.test, som_clusterKey, by.x = "unit.classif")
 drop <- c("unit.classif")
 norm_df.test = norm_df.test[,!(names(norm_df.test) %in% drop)]
 head(norm_df.test)
+truth <- cbind(truth, norm_df.test$som_cluster)
+names(truth)[13] <- "som_cluster"
 
 # --- predict radiation using SVR for test data ------ #
 
+cluster_one_test = subset(norm_df.test, som_cluster==1)
+cluster_two_test = subset(norm_df.test, som_cluster==2)
+cluster_three_test = subset(norm_df.test, som_cluster==3)
+
+cluster_one_truth = subset(truth, som_cluster==1)
+cluster_two_truth = subset(truth, som_cluster==2)
+cluster_three_truth = subset(truth, som_cluster==3)
+
+cluster_one_preds = predict(fits[1], cluster_one_test)
+cluster_two_preds = predict(fits[2], cluster_two_test)
+cluster_three_preds = predict(fits[3], cluster_three_test)
+
+cluster_one_test$predicted = cluster_one_preds[[1]]
+cluster_two_test$predicted = cluster_two_preds[[1]]
+cluster_three_test$predicted = cluster_three_preds[[1]]
+
+RMSE(cluster_one_test$predicted, cluster_one_truth$Radiation)
+RMSE(cluster_two_test$predicted, cluster_two_truth$Radiation)
+RMSE(cluster_three_test$predicted, cluster_three_truth$Radiation)
 
 
-
-
-
-
-
-
-
-
-# ----- build a stacked ensemble model ------ #
-fitControl <- trainControl(method = "repeatedcv",   
-                           number = 3,     # number of folds
-                           repeats = 5)    # repeated five times
-model.cv <- train(Radiation ~ .,
-                  data = norm_df.train,
-                  method = "gbm",
-                  trControl = fitControl) 
-model.cv
-# ----- view the results ------ #
-predictions <- predict(model.cv, norm_df.test)
-norm_df.test$predictedRadiation = as.factor(predictions)
-RMSE(predictions, truth$Radiation)
-library("MLmetrics")
-MAPE(predictions, truth$Radiation)
 
 
